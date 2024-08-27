@@ -9,7 +9,8 @@ import bluetooth
 from ble_advertising import advertising_payload
 
 from micropython import const
-from mc_translate import *
+from ic_translate import *
+from ic_io import get_device_data
 
 _IRQ_CENTRAL_CONNECT = const(1)
 _IRQ_CENTRAL_DISCONNECT = const(2)
@@ -37,7 +38,7 @@ _ADV_APPEARANCE_GENERIC_COMPUTER = const(128)
 
 
 class BLEUART:
-    def __init__(self, ble, name=bt_name, rxbuf=100):
+    def __init__(self, ble, rxbuf=100):
         self._ble = ble
         self._ble.active(True)
         self._ble.irq(self._irq)
@@ -48,7 +49,7 @@ class BLEUART:
         self._rx_buffer = bytearray()
         self._handler = None
         # Optionally add services=[_UART_UUID], but this is likely to make the payload too large.
-        self._payload = advertising_payload(name=name, appearance=_ADV_APPEARANCE_GENERIC_COMPUTER)
+        self._payload = advertising_payload(name=get_device_data()[device_io_device_name], appearance=_ADV_APPEARANCE_GENERIC_COMPUTER)
         self._advertise()
 
     def irq(self, handler):
