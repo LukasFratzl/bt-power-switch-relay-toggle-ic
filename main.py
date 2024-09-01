@@ -77,8 +77,8 @@ def on_rx():
                 seconds = float(parts_list[1])
                 if seconds <= 0:
                     seconds = 0.5
-                if seconds >= 5:
-                    seconds = 5
+                if seconds >= 10:
+                    seconds = 10
                 set_delay_operation_running(True)
                 uart.write(is_valid_on_command_text.format(seconds))
                 led.value(1)
