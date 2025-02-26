@@ -51,26 +51,32 @@ def on_rx():
         parts_list = [part for part in decoded_text.split(device_split_arg)]
         if len(parts_list) == 0:
             return
+        # Help command
         if parts_list[0] == help_command_name:
             uart.write(help_text)
-            print(device_performed_Command.format(help_command_name))
+            print(f"Used command {help_command_name}")
             return
+        # PW Change command
         if len(parts_list) >= 3 and parts_list[0] == pw_command_name and parts_list[2] == json_save_data[
             device_io_pw_name]:
             if parts_list[1] != "":
                 json_save_data[device_io_pw_name] = parts_list[1]
                 save_device_data(json_save_data)
                 uart.write(is_valid_pw_command_text)
+                print(f"Used command {pw_command_name}")
             else:
                 uart.write(is_no_valid_pw_command_text)
+        # Device Name Change Command
         if len(parts_list) >= 3 and parts_list[0] == name_command_name and parts_list[2] == json_save_data[
             device_io_pw_name]:
             if parts_list[1] != "":
                 json_save_data[device_io_device_name] = parts_list[1]
                 save_device_data(json_save_data)
                 uart.write(is_valid_name_command_text)
+                print(f"Used command {name_command_name}")
             else:
                 uart.write(is_no_valid_name_command_text)
+        # On Command
         if len(parts_list) >= 3 and parts_list[0] == on_command_name and parts_list[2] == json_save_data[
             device_io_pw_name]:
             if is_float(parts_list[1]):
@@ -80,7 +86,7 @@ def on_rx():
                 if seconds >= 10:
                     seconds = 10
                 set_delay_operation_running(True)
-                uart.write(is_valid_on_command_text.format(seconds))
+                uart.write(f"Pressing PC power button now for {seconds} Seconds...\n")
                 led.value(1)
                 # Enable Relay ->
                 relay_enable_pin.value(1)
@@ -91,7 +97,7 @@ def on_rx():
                     # Disable Relay ->
                     relay_enable_pin.value(0)
                     uart.write(is_success_on_command_text)
-                    print(device_performed_Command.format(on_command_name))
+                    print(f"Used command {on_command_name}")
                     set_delay_operation_running(False)
 
                 press_on_power_button_timer.init(period=ms, mode=Timer.ONE_SHOT, callback=lambda t: finsh_power_btn_press())
@@ -109,10 +115,21 @@ welcome_timer = Timer(-1)
 operation_reset = False
 operation_reset_timer = Timer(-1)
 
+connection_reset_timer = Timer(-1)
+
 
 def set_operation_running(enabled: bool):
     global operation_reset
     operation_reset = enabled
+
+
+def close_connection():
+    try:
+        set_operation_running(False)
+        set_delay_operation_running(False)
+        uart.close()
+    except:
+        pass
 
 
 try:
@@ -122,6 +139,8 @@ try:
                 welcomed = True
                 print(device_connected_Command)
                 welcome_timer.init(period=2000, mode=Timer.ONE_SHOT, callback=lambda t: uart.write(welcome_text))
+                # Auto Timeout after 40 Sec
+                connection_reset_timer.init(period=40000, mode=Timer.ONE_SHOT, callback=lambda t: close_connection())
         else:
             if welcomed:
                 print(device_disconnected_Command)
